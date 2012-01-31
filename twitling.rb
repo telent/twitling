@@ -5,6 +5,7 @@ require 'twitter'
 require 'patron'
 require 'nokogiri'
 require 'erb'
+require 'tilt'
 require 'ostruct'
 require 'omniauth'
 require 'omniauth-twitter'
@@ -37,23 +38,33 @@ class Link
     @status=args[:status]
     @summary=args[:summary]
     @body=args[:body]
-    @dom=Nokogiri::HTML(@body)
+    @dom=@body && Nokogiri::HTML(@body)
   end
 
   def title
-    @dom.css('title').text.encode("UTF-8")
+    @dom &&     @dom.css('title').text.encode("UTF-8")
   end
   def meta_description
-    d=@dom.css('meta[name=description]')
-    if d.first then d.attr('content').value.encode("UTF-8") end
+    if @dom then
+      d=@dom.css('meta[name=description]')
+      if d.first then d.attr('content').value.encode("UTF-8") end
+    end
   end
   def first_para
-    paras=@dom.css('p')
-    d=paras.select {|p| p.text.count(" ") >10 }.first ||
-      paras.first
+    return unless @dom
+    begin 
+      paras=@dom.css('p')
+      d=paras.select {|p|
+        Encoding.compatible?(p.text," ") && p.text.count(" ") >10 
+      }.first ||
+        paras.first
+    rescue Exception
+      warn [@url,paras]
+    end
     if d then d.text end
   end
   def summary
+    return unless @dom
     f=first_para
     m=meta_description
     if f && (f.start_with? m) then f
@@ -63,6 +74,7 @@ class Link
   end
 
   def image_url
+    return unless @dom
     i=@dom.css('img').first
     s=i && i.attr('src')
     begin 
@@ -75,7 +87,12 @@ class Link
   def self.resolve(url)
     begin
       response=@patron.get(url)
-      new(status: response.status, url: response.url, body: response.body)
+      ct=([response.headers["Content-Type"]].flatten.first.split /;/).first
+      if ct=="text/html" then
+        new(status: response.status, url: response.url, body: response.body)
+      else
+        new(status: response.status, url: response.url, body: nil)
+      end
     rescue Patron::Error
       return new(status: 500, url: url)
     rescue URI::InvalidURIError => e
@@ -92,26 +109,26 @@ class Page
   def initialize(args={})
     @username=args[:username]
     @stories=[]
+    @title="Link Digest for "+@username 
     @page=args[:page].to_i
-    page_template=ERB.new(File.read("index.html.erb"))
     story_template=ERB.new(File.read("_story.html.erb"))
 
-    Twitter.home_timeline(page: @page).each do |tweet|
+    Twitter.home_timeline(page: @page,count: 20).each do |tweet|
       text=tweet.text
       links=URI.extract(text).map {|l| Link.resolve(l) }.compact
       if links[0] then
         s=Story.new(text: text, links: links, poster: tweet.user,
                     timestamp: tweet.created_at, tweet_id: tweet.id)
-        warn s.links.map(&:url).join("\n");
         @stories << story_template.result(s.get_binding)
+      end
     end
+    @string=Tilt.new("layout.html.erb").render(self) do
+      Tilt.new("index.html.erb").render(self)
     end
-    @string=page_template.result(binding)
   end
   def to_html
     @string
   end
-
 end
 
 require 'sinatra/base'
@@ -133,15 +150,21 @@ class Twitling < Sinatra::Base
   end
   
   get '/' do
-    warn "hello"
-    %Q[
-    <a href='/auth/twitter'>Sign in with Twitter</a>
-    
-    <form action='/auth/open_id' method='post'>
-      <input type='text' name='identifier'/>
-      <input type='submit' value='Sign in with OpenID'/>
-    </form>
-    ]
+    template=Tilt.new('layout.html.erb')
+    template.render(:@title=>"Sign in") do
+      %Q[
+<header><h1>Sign in with Twitter</h1></header>
+<article>
+<p>Twitling presents a summary of all the links posted by people you 
+follow on Twitter.  To do this, it needs you to sign into Twitter
+
+<p>
+<a href="/auth/twitter">
+  <img src="/sign-in-with-twitter-l.png" alt="sign in with twitter">
+</a>
+</article>
+]
+    end
   end
 
   get '/auth/twitter/callback' do
