@@ -1,13 +1,21 @@
 <html>
   <head>
     <META http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <title> Link Digest for <%= @username %> </title>
+    <title> Link Digest for <%= @username %> - Twitling </title>
     <link href="linkdigest.css" media="all" rel="stylesheet" type="text/css" />
   </head>
 <body>
 <header>  
   <% user="https://twitter.com/"+@username %>
-  <h1>Twitter link digest for <a href="<%= user %>"><%= @username %></a> </h1>
+  <h1>Twitling : Twitter link digest for <a href="<%= user %>"><%= @username %></a> </h1>
+<nav>
+  <ul>
+    <li> <a href="?page=<%= @page+1 %> ">Older</a> </li>
+    <% if @page > 1 then %>
+    <li> <a href="?page=<%= @page-1 %> ">Newer</a> </li>
+    <% end %>
+  </ul>
+</nav>
 </header>
 <article>
   <%= @stories.join %>
@@ -15,6 +23,7 @@
 <footer>
   Code &copy;2012 <a href="http://ww.telent.net/">Daniel Barlow</a>,
   words &copy; the people wot wrote them.  Powered by
-  <a href="http://www.sinatrarb.com/">Sinatra</a> and the
-  <a href="http://twitter.rubyforge.org/">Twitter Ruby Gem</a>
+  <a href="http://www.sinatrarb.com/">Sinatra</a> and 
+  <a href="https://github.com/intridea/omniauth/wiki">OmniAuth</a> and
+  the <a href="http://twitter.rubyforge.org/">Twitter Ruby Gem</a>
 </body>

@@ -25,7 +25,9 @@
       <div class=url><%= l.url %></div>
       <blockquote> <%= l.summary %> </blockquote>
       <% else %>
-      <div class=url><%= l.url %> (cannot retrieve)</div>
+      <div class=url>
+	<a href="<%= l.url %>"><%= l.url %></a> (cannot retrieve)
+      </div>
       <% end %>
     </li>
     <% end  %>

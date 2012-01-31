@@ -92,12 +92,11 @@ class Page
   def initialize(args={})
     @username=args[:username]
     @stories=[]
-    stories=[]
+    @page=args[:page].to_i
     page_template=ERB.new(File.read("index.html.erb"))
     story_template=ERB.new(File.read("_story.html.erb"))
 
-    p={count: args[:count]}; if s=args[:since_id] then p[:since_id]=s end
-    Twitter.home_timeline(p).each do |tweet|
+    Twitter.home_timeline(page: @page).each do |tweet|
       text=tweet.text
       links=URI.extract(text).map {|l| Link.resolve(l) }.compact
       if links[0] then
@@ -148,27 +147,28 @@ class Twitling < Sinatra::Base
   get '/auth/twitter/callback' do
     auth = request.env['omniauth.auth']
     c=auth.credentials
-    PP.pp auth
     session[:token]=c.token
     session[:secret]=c.secret
     redirect '/timeline'
   end
 
-  get '/timeline' do
-    expires 60
-    t,c= [session[:token],session[:secret]]
-    warn [t,c]
+  def auth_twitter(token,secret)
     Twitter.configure do |config|
       config.consumer_key = Keys['twitter']['consumer_key']
       config.consumer_secret = Keys['twitter']['consumer_secret']
-      config.oauth_token =t; 
-      config.oauth_token_secret=c
+      config.oauth_token =token; 
+      config.oauth_token_secret=secret
     end
-    p=Page.new :username=>Twitter.current_user.screen_name,:count=>2, :since_id=> nil
+  end
+
+  get '/timeline' do
+    auth_twitter session[:token],session[:secret]
+    expires 60
+    auth_twitter session[:token],session[:secret]
+    p=Page.new :username=>Twitter.current_user.screen_name,:page=>(params[:page] || 1)
     p.to_html
   end
 
 end
-
 
 Twitling.run! 
