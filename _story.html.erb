@@ -1,0 +1,34 @@
+<div class=story>
+  <div class=poster>
+    <% user="https://twitter.com/"+@poster.screen_name %>
+    <a href="<%= user %>">
+      <img src="<%= @poster.profile_image_url %>">
+      <span class="screen_name"><%= @poster.screen_name %></span>
+    </a>
+    <span class="name"><%= @poster.name %></span>
+    <span class="timestamp">
+      <a href="<%= user %>/status/<%= @tweet_id %>">
+	<%= @timestamp.strftime("%H:%M:%S") %>
+      </a>
+    </span>
+  </div>
+  <div class=text>
+    <%= @text %>
+  </div>
+  <br clear=both>
+  <ul class=links>
+    <% @links.each do |l| %>
+    <li>
+      <% if i=l.image_url then %> <img class="link" src="<%= i %>"/> <% end %>
+      <a href="<%= l.url %>"><%= l.title %></a>
+      <% if l.status/100 == 2 then %>
+      <div class=url><%= l.url %></div>
+      <blockquote> <%= l.summary %> </blockquote>
+      <% else %>
+      <div class=url><%= l.url %> (cannot retrieve)</div>
+      <% end %>
+    </li>
+    <% end  %>
+  </ul>
+</div>
+

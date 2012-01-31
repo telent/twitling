@@ -1,0 +1,20 @@
+<html>
+  <head>
+    <META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title> Link Digest for <%= @username %> </title>
+    <link href="linkdigest.css" media="all" rel="stylesheet" type="text/css" />
+  </head>
+<body>
+<header>  
+  <% user="https://twitter.com/"+@username %>
+  <h1>Twitter link digest for <a href="<%= user %>"><%= @username %></a> </h1>
+</header>
+<article>
+  <%= @stories.join %>
+</article>
+<footer>
+  Code &copy;2012 <a href="http://ww.telent.net/">Daniel Barlow</a>,
+  words &copy; the people wot wrote them.  Powered by
+  <a href="http://www.sinatrarb.com/">Sinatra</a> and the
+  <a href="http://twitter.rubyforge.org/">Twitter Ruby Gem</a>
+</body>

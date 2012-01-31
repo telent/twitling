@@ -1,0 +1,90 @@
+body {
+    font-family: Arial,Helvetica;
+    font-size: 12pt;
+    margin:0; padding: 0;
+}
+header {
+    background-color: #966;
+    color: #def;
+    padding: 8px;
+}
+header h1 {
+    font-size: 14pt;
+    text-shadow: 2px 2px 1px #777;
+    margin: 0;
+}
+
+footer {
+    font-size: 10pt;
+    text-shadow: 2px 2px 1px #666;
+    color: white;
+    background-color: #889;
+    text-align: center;
+    padding: 1em;
+}
+footer a {
+    color: #ddf;
+}
+
+article {
+    color: #444;
+    margin: 1em 3em;
+}
+div.story div.poster img {
+    float: left;
+    margin-right: 6px;
+}
+div.story {
+    margin-bottom: 1em;
+    border-top: 1px solid #ddd;
+}
+div.poster .screen_name {
+    font-weight: bold;
+}
+div.poster .name {
+    color: #888;
+    font-size: 90%;
+}
+div.poster .timestamp {
+    font-size: 90%;
+    text-transform: small-caps;
+}
+div.poster .timestamp  a {
+    color: #888;
+    text-decoration: none;
+}
+div.poster .timestamp  a:hover {
+    text-decoration: underline;
+}
+
+ul.links div.url {
+    color: #888;
+    font-size: 80%;
+}
+ul.links {
+    font-size: 11pt;
+    border-left: 12px solid #ddd;
+    margin-top: 0;
+    margin-left: 3em;
+    background-color: #f0f8ff;
+    padding: .5em .5em .5em 0.5em;
+    list-style-type: none;
+}
+
+blockquote {
+    font-size: 10pt;
+}
+
+ul.links li blockquote:after {
+    clear: both;
+    content: ".";
+    opacity: 0;
+}
+
+ul.links img.link {
+    float: right;
+    max-width: 100px;
+    background: white;
+    border: 1px solid #ccc;
+    padding: 4px;
+}
