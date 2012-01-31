@@ -127,6 +127,7 @@ class Twitling < Sinatra::Base
   set :static,true
   set :public_folder,"public"
   set :sessions, true
+  set :port, (ENV['RACK_PORT'] || 4567)
   use Rack::Session::Cookie
   use OmniAuth::Builder do
     provider :twitter, Keys['twitter']['consumer_key'],Keys['twitter']['consumer_secret']
