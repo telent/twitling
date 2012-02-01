@@ -52,7 +52,7 @@ class Link
     begin 
       paras=@dom.css('p')
       d=paras.select {|p|
-        Encoding.compatible?(p.text," ") && p.text.count(" ") >10 
+        Encoding.compatible?(p.text," ") && p.text.scan(/\w+/).size >10 
       }.first ||
         paras.first
     rescue Exception
