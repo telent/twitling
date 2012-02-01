@@ -2,7 +2,7 @@
 require 'json'
 require 'pp'
 require 'twitter'
-require 'patron'
+require 'typhoeus'
 require 'nokogiri'
 require 'erb'
 require 'tilt'
@@ -28,8 +28,6 @@ end
 
 class Link
   attr_reader :url,:status,:summary,:body,:dom
-  @patron = Patron::Session.new
-  @patron.timeout=2
   def initialize(args={})
     @url=args[:url]
     unless Encoding.compatible?(@url,"hello") then
@@ -78,7 +76,7 @@ class Link
     i=@dom.css('img').first
     s=i && i.attr('src')
     begin 
-      ((URI.parse self.url).merge s).to_s.encode("UTF-8")
+      s && ((URI.parse self.url).merge s).to_s.encode("UTF-8")
     rescue ArgumentError,Encoding::CompatibilityError,URI::InvalidURIError
       warn [:bad_url,self.url,s]
     end
@@ -93,8 +91,8 @@ class Link
       else
         new(status: response.status, url: response.url, body: nil)
       end
-    rescue Patron::Error
-      return new(status: 500, url: url)
+#    rescue Patron::Error
+#      return new(status: 500, url: url)
     rescue URI::InvalidURIError => e
       # URI::extract is impossibly optimistic about what it thinks a
       # URL is - anything with a colon will make it happy
@@ -113,15 +111,35 @@ class Page
     @page=args[:page].to_i
     story_template=ERB.new(File.read("_story.html.erb"))
 
+    hydra = Typhoeus::Hydra.new
     Twitter.home_timeline(page: @page,count: 20).each do |tweet|
       text=tweet.text
-      links=URI.extract(text).map {|l| Link.resolve(l) }.compact
-      if links[0] then
+      reqs=[]
+      links=[]
+      URI.extract(text).each do |l|
+        begin
+          req=Typhoeus::Request.new(l,:follow_location => true,
+                                    :timeout  =>  2000,
+                                    :headers =>{:Accept=>'text/html,application/xhtml+xml,application/xml'})
+          req.on_complete do |resp|
+              links << Link.new(url: resp.effective_url,
+                                status: resp.code,
+                                body: resp.body)
+          end
+          reqs << req
+          hydra.queue(req)
+        rescue URI::InvalidURIError
+          warn [:bad_url,l]
+        end
+      end
+      if reqs[0] then
         s=Story.new(text: text, links: links, poster: tweet.user,
                     timestamp: tweet.created_at, tweet_id: tweet.id)
-        @stories << story_template.result(s.get_binding)
+        @stories << s
       end
     end
+    hydra.run
+    @stories= @stories.map{|s| story_template.result(s.get_binding)}
     @string=Tilt.new("layout.html.erb").render(self) do
       Tilt.new("timeline.html.erb").render(self)
     end
