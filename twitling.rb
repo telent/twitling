@@ -162,7 +162,7 @@ class Twitling < Sinatra::Base
     c=auth.credentials
     session[:token]=c.token
     session[:secret]=c.secret
-    redirect '/timeline'
+    redirect '/timeline/'+auth["info"]["nickname"]
   end
 
   def auth_twitter(token,secret)
@@ -174,10 +174,13 @@ class Twitling < Sinatra::Base
     end
   end
 
-  get '/timeline' do
-    auth_twitter session[:token],session[:secret]
+  # we put the twitter screen name into the URL to make caching easier:
+  # don't want one users' timeline wiping out the cache entry for another
+  # (or worse, being shown to another)
+  get '/timeline/:name' do
     expires 60
     auth_twitter session[:token],session[:secret]
+    halt 401 unless params[:name]==Twitter.current_user.screen_name
     p=Page.new :username=>Twitter.current_user.screen_name,:page=>(params[:page] || 1)
     p.to_html
   end
