@@ -36,9 +36,8 @@ class Link
     @status=args[:status]
     @summary=args[:summary]
     @body=args[:body]
-    @dom=@body && Nokogiri::HTML(@body)
   end
-
+  
   def title
     @dom &&     @dom.css('title').text.encode("UTF-8")
   end
@@ -70,7 +69,7 @@ class Link
     else [m,f].compact.join("<br>")
     end
   end
-
+  
   def image_url
     return unless @dom
     i=@dom.css('img').first
@@ -81,24 +80,42 @@ class Link
       warn [:bad_url,self.url,s]
     end
   end
-
-  def self.resolve(url)
-    begin
-      response=@patron.get(url)
-      ct=([response.headers["Content-Type"]].flatten.first.split /;/).first
-      if ct=="text/html" then
-        new(status: response.status, url: response.url, body: response.body)
-      else
-        new(status: response.status, url: response.url, body: nil)
+  
+  def fetch(hydra)
+    valid_ct=%w(text/html application/xhtml+xml application/xml)
+    if [80,443].member?(URI.parse(url).port) 
+      req=Typhoeus::Request.new(@url,
+                                :follow_location => false,
+                                :timeout  =>  2000,
+                                :headers =>{:Accept=>valid_ct.join(",")})
+      req.on_complete do |resp|
+        if resp.code/100 == 3 then
+          # we have to do redirects by hand so that we can check we're
+          # not being redirected to ports or places we don't want to go
+          @url=resp.headers_hash[:Location]
+          self.fetch(hydra)
+        else
+          @url=resp.effective_url
+          @status=resp.code
+          type=resp.headers_hash[:content_type]
+          if type.is_a?(String) then
+            # Typhoeus returns {} when asked for the value of a 
+            # non-existent header.  I don't know why, you tell *me* why
+            type=type.split(/;/).first 
+            if valid_ct.member? type
+              @body=resp.body
+              @dom=@body && Nokogiri::HTML(@body)
+              @dom.css('script').unlink # 
+            end
+          end
+        end
       end
-#    rescue Patron::Error
-#      return new(status: 500, url: url)
-    rescue URI::InvalidURIError => e
-      # URI::extract is impossibly optimistic about what it thinks a
-      # URL is - anything with a colon will make it happy
-      # warn "bad URI #{url}"
-      nil
+      hydra.queue(req)
+    else
+      @status=500
+      @body="<h1>This address is restricted</h1><p>This page uses a network port which is normally used for purposes other than Web browsing.  It has not been fetched</p>"
     end
+    self
   end
 end
 
@@ -116,23 +133,10 @@ class Page
       text=tweet.text
       reqs=[]
       links=[]
-      URI.extract(text).each do |l|
-        begin
-          req=Typhoeus::Request.new(l,:follow_location => true,
-                                    :timeout  =>  2000,
-                                    :headers =>{:Accept=>'text/html,application/xhtml+xml,application/xml'})
-          req.on_complete do |resp|
-              links << Link.new(url: resp.effective_url,
-                                status: resp.code,
-                                body: resp.body)
-          end
-          reqs << req
-          hydra.queue(req)
-        rescue URI::InvalidURIError
-          warn [:bad_url,l]
-        end
+      URI.extract(text).grep(/http(s)?:\/\/.+\..+/).each do |l|
+        links << Link.new(:url=>l).fetch(hydra)
       end
-      if reqs[0] then
+      if links[0] then
         s=Story.new(text: text, links: links, poster: tweet.user,
                     timestamp: tweet.created_at, tweet_id: tweet.id)
         @stories << s
