@@ -123,7 +123,7 @@ class Page
       end
     end
     @string=Tilt.new("layout.html.erb").render(self) do
-      Tilt.new("index.html.erb").render(self)
+      Tilt.new("timeline.html.erb").render(self)
     end
   end
   def to_html
@@ -151,20 +151,8 @@ class Twitling < Sinatra::Base
   end
   
   get '/' do
-    template=Tilt.new('layout.html.erb')
-    template.render(:@title=>"Sign in") do
-      %Q[
-<header><h1>Sign in with Twitter</h1></header>
-<article>
-<p>Twitling presents a summary of all the links posted by people you 
-follow on Twitter.  To do this, it needs you to sign into Twitter
-
-<p>
-<a href="/auth/twitter">
-  <img src="/sign-in-with-twitter-l.png" alt="sign in with twitter">
-</a>
-</article>
-]
+    Tilt.new('layout.html.erb').render(self) do
+      Tilt.new("signin.html.erb").render(self)
     end
   end
 
