@@ -151,6 +151,7 @@ class Twitling < Sinatra::Base
   end
   
   get '/' do
+    @title="Sign in"
     Tilt.new('layout.html.erb').render(self) do
       Tilt.new("signin.html.erb").render(self)
     end
