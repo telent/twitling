@@ -209,4 +209,6 @@ class Twitling < Sinatra::Base
 
 end
 
-Twitling.run! 
+if $0 == __FILE__
+  Twitling.run! 
+end
